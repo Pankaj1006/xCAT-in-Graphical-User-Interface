@@ -1,0 +1,116 @@
+#!/usr/bin/env python3.11
+
+import os
+import subprocess
+from tkinter import *
+from tkinter import ttk
+
+class XcatInstallerGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("CDAC")
+#        self.root.wm_iconbitmap("cdac.ico")
+        self.root.minsize(1100, 600)
+
+        self.create_menu()
+        self.create_labels()
+        self.create_status_bar()
+        self.create_buttons()
+        self.create_content_frame()
+    # Menubar code hare
+    def create_menu(self):
+        menubar = Menu(self.root)
+        self.root.config(menu=menubar)
+
+        file_menu = Menu(menubar, tearoff=0)
+        file_menu.add_command(label='Exit', command=self.root.destroy)
+        menubar.add_cascade(label="File", menu=file_menu, underline=0)
+
+        help_menu = Menu(menubar, tearoff=0)
+        help_menu.add_command(label='xCAT installation', command=self.xcat_install)
+        help_menu.add_command(label='ISO image configuration', command=self.create_image)
+        help_menu.add_command(label='Adding nodes', command=self.node_add)
+        help_menu.add_command(label='Show nodes', command=self.show_nodes)
+        menubar.add_cascade(label="Help", menu=help_menu, underline=0)
+
+        contact_menu = Menu(menubar, tearoff=0)
+        contact_menu.add_command(label='C-DAC ACTS C-DAC Innovation Park,')
+        contact_menu.add_command(label='Panchawati, Pashan, Pune - 411 008,')
+        contact_menu.add_command(label='Maharashtra (India) Phone: +91-20-25503100')
+        menubar.add_cascade(label="Contact us", menu=contact_menu, underline=0)
+    # Interface LABEL
+    def create_labels(self):
+        l1 = Label(self.root, text="Welcome to xCAT installation GUI", font=("Times New Roman", 28, "bold"), fg="darkslategray")
+        l1.pack()
+    # Status BAR (Down)
+    def create_status_bar(self):
+        self.statusvar = StringVar()
+        self.statusvar.set("@ Centre for Development of Advanced Computing")
+        sbar = Label(self.root, textvariable=self.statusvar, relief=SUNKEN, font=("Times New Roman", 8), fg="darkslategray")
+        sbar.pack(side=BOTTOM, fill=X)
+    # Buttons code hare
+    def create_buttons(self):
+        f1 = Frame(self.root, borderwidth=6, bg="gray")
+        f1.pack(side=LEFT, padx=34, pady=30, fill='y')
+        scrollbar = Scrollbar(root)
+        scrollbar.pack(side=RIGHT, fill=Y)
+
+        buttons = [
+            ("xCAT Install", self.xcat_install),
+            ("Create Image", self.create_image),
+            ("Node Add", self.node_add),
+            ("Show Nodes", self.show_nodes)
+        ]
+
+        for label, command in buttons:
+            button = Button(f1, text=label, font=("Times New Roman", 17, "bold"), fg="darkslategray4", borderwidth=4, width=10, relief=RAISED, command=command)
+            button.grid(padx=14, pady=34)
+    # RIGHT side content frame
+    def create_content_frame(self):
+        self.content_frame = Frame(self.root, borderwidth=6, bg="gainsboro")
+        self.content_frame.pack(side=RIGHT, padx=34, pady=34, fill='both', expand=True)
+
+#        scrollbar = Scrollbar(root)
+#        scrollbar.pack(side=RIGHT, fill=Y)
+
+
+#     def display_text(self, text):
+#         text_widget = Text(self.content_frame, wrap=WORD)
+#         text_widget.insert("1.0", text)
+#         text_widget.pack(fill='both', expand=True)
+    
+    # Child window code hare
+    def open_child_window(self, title, content):
+        child_window = Toplevel(self.root)
+        child_window.title(title)
+
+        label = Label(child_window, text=content)
+        label.pack(side=RIGHT, padx=280, pady=200, fill='both', expand=True)
+
+    # Button function code hare
+    def xcat_install(self):
+        #self.display_text("Running xCAT installation steps...")
+        subprocess.call(["python3", "xcat_install"])
+   #     self.open_child_window("xCAT Installation", "xCAT installation is in progress...")
+
+
+    def create_image(self):
+        #self.display_text("Running ISO image configuration steps...")
+        subprocess.call(["python3", "create_image"])
+  #      self.open_child_window("xCAT Installation", "xCAT installation is in progress...")
+
+
+    def node_add(self):
+        #self.display_text("Running xCAT node configuration steps...")
+        subprocess.call(["python3", "node_add"])
+ #       self.open_child_window("xCAT Installation", "xCAT installation is in progress...")
+
+    def show_nodes(self):
+        #self.display_text("Displaying xCAT node list...")
+        subprocess.call(["python3", "show_nodes"])
+#        self.open_child_window("xCAT Installation", "xCAT installation is in progress...")
+
+if __name__ == "__main__":
+    root = Tk()
+    app = XcatInstallerGUI(root)
+    root.mainloop()
