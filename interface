@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/python3
 
 import os
 import subprocess
@@ -9,7 +9,7 @@ class XcatInstallerGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("CDAC")
-#        self.root.wm_iconbitmap("cdac.ico")
+        self.root.wm_iconbitmap("cdac.ico")
         self.root.minsize(1100, 600)
 
         self.create_menu()
@@ -29,7 +29,7 @@ class XcatInstallerGUI:
         help_menu = Menu(menubar, tearoff=0)
         help_menu.add_command(label='xCAT installation', command=self.xcat_install)
         help_menu.add_command(label='ISO image configuration', command=self.create_image)
-        help_menu.add_command(label='Adding nodes', command=self.node_add)
+        help_menu.add_command(label='Adding nodes', command=self.add_nodes)
         help_menu.add_command(label='Show nodes', command=self.show_nodes)
         menubar.add_cascade(label="Help", menu=help_menu, underline=0)
 
@@ -58,7 +58,7 @@ class XcatInstallerGUI:
         buttons = [
             ("xCAT Install", self.xcat_install),
             ("Create Image", self.create_image),
-            ("Node Add", self.node_add),
+            ("Node Add", self.add_nodes),
             ("Show Nodes", self.show_nodes)
         ]
 
@@ -100,9 +100,9 @@ class XcatInstallerGUI:
   #      self.open_child_window("xCAT Installation", "xCAT installation is in progress...")
 
 
-    def node_add(self):
+    def add_nodes(self):
         #self.display_text("Running xCAT node configuration steps...")
-        subprocess.call(["python3", "node_add"])
+        subprocess.call(["python3", "add_nodes"])
  #       self.open_child_window("xCAT Installation", "xCAT installation is in progress...")
 
     def show_nodes(self):

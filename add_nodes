@@ -1,0 +1,71 @@
+#!/usr/bin/python3
+
+import os
+import subprocess
+import tkinter as tk
+from tkinter import simpledialog, messagebox
+
+class NodeAdder:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Node Adder")
+        self.root.geometry("400x300")
+        self.root.minsize(700, 400)
+
+    def create_group(self):
+        group_name = simpledialog.askstring("Create Group", "Enter Group Name:")
+        if group_name:
+            subprocess.run(["mkdef", "-t", "group", "-o", group_name])
+
+    def add_node(self):
+        n_name = simpledialog.askstring("Add Node", "Enter Node Name:")
+        n_group_name = simpledialog.askstring("Add Node", "Enter Group Name:")
+        n_ip = simpledialog.askstring("Add Node", "Enter Node IP:")
+        n_mac = simpledialog.askstring("Add Node", "Enter Node MAC Address:")
+        n_ib_ip = simpledialog.askstring("Add Node", "Enter Node Infiniband IP:")
+        n_bmc_ip = simpledialog.askstring("Add Node", "Enter Node BMC IP:")
+        image = simpledialog.askstring("Add Node", "Enter Image Name:")
+
+        if not all([n_name, n_group_name, n_ip, n_mac, n_ib_ip, n_bmc_ip, image]):
+            messagebox.showinfo("Error", "One of the fields is empty. Please try again.")
+        else:
+            n_osimage = subprocess.check_output(["lsdef", "-t", "osimage", image]).decode().split("osvers=")[1].split("\n")[0]
+            subprocess.run([
+                "mkdef", "-t", "node", "-o", n_name, "groups=" + n_group_name, "ip=" + n_ip, "mac=" + n_mac,
+                "nicips.ib0=" + n_ib_ip, "nicnetworks.ib0=ib0", "nictypes.ib0=Infiniband", "bmc=" + n_bmc_ip,
+                "mgt=ipmi", "chain=runcmd=bmcsetup", "os=" + n_osimage, "postbootscripts=confignetwork -s", "profile=compute"
+            ])
+            self.make_hosts()
+            self.make_dhcp()
+            self.make_dns()
+            self.node_set(n_name, image)
+
+    def make_hosts(self):
+        subprocess.run(["makehosts"])
+
+    def make_dhcp(self):
+        subprocess.run(["makedhcp", "-n"])
+
+    def make_dns(self):
+        subprocess.run(["makedns", "-n"])
+
+    def node_set(self, node_name, os_image):
+        subprocess.run(["nodeset", node_name, "osimage=" + os_image])
+
+    def run(self):
+        menu = tk.Menu(self.root)
+        self.root.config(menu=menu)
+
+        group_menu = tk.Menu(menu)
+        menu.add_cascade(label="Group", menu=group_menu)
+        group_menu.add_command(label="Create Group", command=self.create_group)
+
+        node_menu = tk.Menu(menu)
+        menu.add_cascade(label="Node", menu=node_menu)
+        node_menu.add_command(label="Add Node", command=self.add_node)
+
+        self.root.mainloop()
+
+if __name__ == "__main__":
+    node_adder = NodeAdder()
+    node_adder.run()

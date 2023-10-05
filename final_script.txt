@@ -1,0 +1,121 @@
+!/usr/bin/python3
+import os
+import re
+import subprocess
+if os.geteuid() != 0:
+    exit("You need to have root privileges to run this script.\nPlease try again, this time using 'sudo'. Exiting.")
+else:
+    print("Yes you are Root user")
+    a=int(input("Press 1 if you want to install xCAT: "))
+    if a == 1 :
+        os.system("systemctl stop firewalld")
+        os.system("systemctl disable firewalld")
+        os.system("setenforce 0")
+        os.system("sed -i 's/SELINUX=permissive/SELINUX=disabled/' /etc/selinux/config")
+        isFile = os.path.isfile("/etc/profile.d/xcat.sh")
+        if(isFile==True):
+            print("xCAT packages are already present and installed in the system")
+        else:
+            os.system("wget -P /etc/yum.repos.d https://xcat.org/files/xcat/repos/yum/latest/xcat-core/xcat-core.repo")
+            os.system("wget -P /etc/yum.repos.d https://xcat.org/files/xcat/repos/yum/xcat-dep/rh8/x86_64/xcat-dep.repo")
+            os.system("dnf install xCAT -y")
+            print("xCAT is installed successfully")
+        #-------------------------------------------------------------------------------------------------------------
+        new_hostname = input("Enter Hostname: ")
+                       # Will Use the 'hostnamectl' command to set the new hostname
+        try:
+            subprocess.run(["sudo", "hostnamectl", "set-hostname", new_hostname], check=True)
+            print(f"Hostname has been set to {new_hostname}")
+        except subprocess.CalledProcessError:
+            print("Failed to set hostname. Make sure you have the necessary privileges.")
+        #------------------------------------------------------------------------------------------------------------
+        dhcpinterfaces = input("Enter interface name for provisioning: ")
+        try:
+            subprocess.run(["chdef", "-t", "site", f"dhcpinterfaces={dhcpinterfaces}"], check=True)
+        except subprocess.CalledProcessError:
+            pass  # Placeholder, you can add error handling code here
+        #--------------------------------------------------------------------------------------------------------------
+        copyiso=int(input("Do you wish to Copy the ISO ? Press 1 if Yes :: "))
+        if copyiso == 1:
+            os.system(" dd if=/dev/sr0 of=/root/alma8.8.iso ")
+        else:
+            print("Operation Aborted!!")
+        #-------------------------------------------------------------------------------------------------------------
+        os.system(" copycds /root/alma8.8.iso ")     # Used to copy ISO images of Operating System
+        '''
+        #os.system("lsdef -t osimage")
+        st='''
+            1. Diskfull ->  alma8.8-x86_64-install-compute  (osimage)
+            2. Diskless ->  alma8.8-x86_64-netboot-compute  (osimage)
+            3. State-lite -> alma8.8-x86_64-statelite-compute  (osimage)'''
+        print(st)
+
+        img_choice=int(input("Enter your Choice of image  :: "))
+        if img_choice==1:
+            #os.system("genimage alma8.8-x86_64-install-compute")
+            os.system("mkdir -p /install/custom/statefull")
+        elif img_choice==2:
+            #os.system("genimage alma8.8-x86_64-netboot-compute")
+            os.system("mkdir -p /install/custom/netboot")
+            command = [
+                'chdef',
+                '-t', 'osimage',
+                'alma8.8-x86_64-netboot-compute',
+                'synclists="/install/custom/netboot/compute.synclist"'
+            ]
+            # Run the command
+            subprocess.run(command, check=True)
+            file_path = "/install/custom/netboot/compute.synclist"
+            # Define the lines to write
+            lines = [
+                "/etc/passwd -> /etc/passwd",
+                "/etc/shadow -> /etc/shadow",
+                "/etc/group -> /etc/group",
+                "/etc/hosts -> /etc/hosts"
+            ]
+            # Open the file in append mode and write the lines
+            with open(file_path, "a") as file:
+                for line in lines:
+                    file.write(line + "\n")
+            os.system("packimage alma8.8-x86_64-netboot-compute")
+        elif img_choice==3:
+            #os.system("genimage alma8.8-x86_64-statelite-compute")
+            os.system("mkdir -p /install/custom/statelite")
+      #------------------------------------------------------------------------------------------------------------
+        mac_address = input("Enter the MAC address: ")
+        ip_address = input("Enter the IP address: ")
+        # Define the command as a list of strings
+        command = [
+            'mkdef',
+            '-t', 'node',
+            'cn00',
+            'groups=compute,all',
+            f'ip={ip_address}',
+            f'mac={mac_address}',
+            'netboot=xnba'
+        ]
+        # Run the command
+        subprocess.run(command, check=True)
+        domain_entry = input("Enter the domain entry: ")
+        # Define the command as a list of strings
+        command = [
+            'chdef',
+            '-t', 'site',
+            f'domain={domain_entry}'
+        ]
+        # Run the command
+        subprocess.run(command, check=True)
+        #-------------------------------------------------------------------------------------------------------------
+        os.system("makehosts")
+        os.system("makenetworks")
+        os.system("makedhcp -n")
+        nodeset_command = [
+            'nodeset',
+            'compute',
+            'osimage=alma8.8-x86_64-netboot-compute'
+        ]
+        # Run the command
+        subprocess.run(nodeset_command, check=True)
+        os.system("systemctl restart dhcpd")
+    else:
+        exit("Not a valid input, Operation Aborted")

@@ -1,0 +1,689 @@
+#!/usr/bin/python3
+
+import os
+import re
+import time
+import csv
+import threading
+from tkinter import *
+from tkinter import filedialog
+#from psycopg2 import connect
+import subprocess
+import tkinter as tk
+from tkinter import ttk, messagebox
+from tkinter import simpledialog, messagebox, Button
+
+class XcatInstaller(tk.Tk):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.title("CDAC")
+        self.minsize(1100,700)
+        icon_image = tk.PhotoImage(file="/root/main/cdac.png")  # Replace "your_icon.png" with your icon file path
+        self.iconphoto(False, icon_image)
+
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_columnconfigure(0, weight=1)
+
+        self.frames = {}
+        for F in (StartPage, MainPage, InstallPage, ImagePage, NodePage, ShowPage):
+            page_name = F.__name__
+            frame = F(parent=container, controller=self)
+            self.frames[page_name] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
+
+        self.show_frame("StartPage")
+
+    def show_frame(self, page_name):
+        frame = self.frames[page_name]
+        frame.tkraise()
+
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+
+
+       # Create a menubar
+
+        my_menu = tk.Menu(menubar, tearoff=0)
+        my_menu.add_command(label='xCAT installation') #command=self.xcat_install
+        my_menu.add_command(label='ISO image configuration') #command=self.create_image)
+        my_menu.add_command(label='Adding nodes') #command=self.add_nodes)
+        my_menu.add_command(label='Show nodes') #command=self.show_nodes)
+        menubar.add_cascade(label="Menu", menu=my_menu, underline=0)
+
+        def display_contact_info():
+            contact_info = """C-DAC ACTS C-DAC Innovation Park, Panchawati, Pashan, Pune - 411008, Maharashtra (India), Phone: +91-20-25503100"""
+            messagebox.showinfo("Contact Information", contact_info)
+
+        contact_menu = tk.Menu(menubar, tearoff=0)
+        contact_menu.add_command(label='Contact us', command=display_contact_info)
+        menubar.add_cascade(label="Contact us", menu=contact_menu, underline=0)
+
+        exit_menu = tk.Menu(menubar, tearoff=False)
+        menubar.add_cascade(label="Exit", menu=exit_menu)
+        exit_menu.add_command(label="Exit", command=self.quit)
+
+
+class StartPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg='#B3B6B7')
+        self.controller = controller 
+ 
+        heading_label = tk.Label(self, text='Welcome to xCAT installation GUI', font=('orbitron', 40, 'bold'), foreground='#2C3E50', background='#B3B6B7')
+        heading_label.pack(pady=25)
+
+        space_label = tk.Label(self, height=4, bg='#B3B6B7')
+        space_label.pack()
+
+        password_label = tk.Label(self, text='Enter your password', font=('orbitron', 14, 'bold'), bg='#B3B6B7', fg='white')
+        password_label.pack(pady=10)
+
+        self.my_password = tk.StringVar()
+        password_entry_box = tk.Entry(self, textvariable=self.my_password, font=('orbitron', 12), width=22)
+        password_entry_box.focus_set()
+        password_entry_box.pack(ipady=7)
+
+        def handle_focus_in(_):
+            password_entry_box.configure(fg='black', show='*')
+        password_entry_box.bind('<FocusIn>', handle_focus_in)
+
+        def check_password():
+            if self.my_password.get() == 'root':
+                self.my_password.set('')
+                incorrect_password_label['text'] = ''
+                controller.show_frame('MainPage')
+            else:
+                incorrect_password_label['text'] = 'Incorrect Password'
+
+        enter_button = tk.Button(self, text='Enter', font=('orbitron', 20), command=check_password, relief='raised', borderwidth=3, width=20, height=1)
+        enter_button.pack(pady=15)
+
+        incorrect_password_label = tk.Label(self, text='', font=('orbitron', 13), fg='white', bg='#33334d', anchor='n')
+        incorrect_password_label.pack(fill='both', expand=True)
+
+        bottom_frame = tk.Frame(self, relief='raised', borderwidth=3)
+        bottom_frame.pack(fill='x', side='bottom')
+
+        org_label = tk.Label(self, text='@ Centre for Development of Advanced Computing', font=('orbitron', 10), bg='#B3B6B7', fg='black')
+        org_label.pack(side='bottom', padx=10)
+
+        time_label = tk.Label(bottom_frame, font=('orbitron', 12))
+        time_label.pack(side='right')
+
+        self.tick(time_label)
+
+    def tick(self, label):
+        current_time = time.strftime('%I:%M %p').lstrip('0').replace(' 0', ' ')
+        label.config(text=current_time)
+        label.after(200, lambda: self.tick(label))
+
+class MainPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg='#B3B6B7')
+        self.controller = controller
+
+        heading_label = tk.Label(self, text='Welcome to xCAT installation GUI', font=('orbitron', 40, 'bold'), foreground='#2C3E50', background='#B3B6B7')
+        heading_label.pack(pady=25)
+
+        main_menu_label = tk.Label(self, text='Main Menu', font=('orbitron', 18), fg='black', bg='#B3B6B7')
+        main_menu_label.pack()
+
+        selection_label = tk.Label(self, text=' ** Please make a selection', font=('orbitron', 13), fg='white', bg='#2C3E50', anchor='w')
+        selection_label.pack(fill='x')
+
+        button_frame = tk.Frame(self, bg='#33334d')
+        button_frame.pack(fill='both', expand=True)     
+
+
+        def xcat_install():
+            controller.show_frame('InstallPage')
+        image_button = tk.Button(button_frame, text='xCAT Install', font=('orbitron', 12, 'bold'), command=xcat_install, relief='raised', borderwidth=3, width=30, height=4)
+        image_button.grid(row=0, column=0, padx=30, pady=5)
+
+        def create_image():
+            controller.show_frame('ImagePage')
+        image_button = tk.Button(button_frame, text='Create Image', font=('orbitron', 12, 'bold'), command=create_image, relief='raised', borderwidth=3, width=30, height=4)
+        image_button.grid(row=1, column=0, padx=30, pady=5)
+
+        def add_nodes():
+            controller.show_frame('NodePage')
+
+        node_button = tk.Button(button_frame, text='Node Definition', font=('orbitron', 12, 'bold'), command=add_nodes, relief='raised', borderwidth=3, width=30, height=4)
+        node_button.grid(row=2, column=0, padx=30, pady=5)
+
+        def show_nodes():
+            controller.show_frame('ShowPage')
+
+        show_button = tk.Button(button_frame, text='Node List', font=('orbitron', 12, 'bold'), command=show_nodes, relief='raised', borderwidth=3, width=30, height=4)
+        show_button.grid(row=3, column=0, padx=30, pady=5)
+
+        def exit_program():
+            controller.show_frame('StartPage')
+
+        bottom_frame = tk.Frame(self, relief='raised', borderwidth=3)
+        bottom_frame.pack(fill='x', side='bottom')
+
+        exit_button = tk.Button(button_frame, text='Exit', font=('orbitron', 12, 'bold'), command=exit_program, relief='raised', borderwidth=3, width=30, height=4)
+        exit_button.grid(row=4, column=0, padx=30, pady=5)
+
+        org_label = tk.Label(self, text='@ Centre for Development of Advanced Computing', font=('orbitron', 10), bg='#B3B6B7', fg='black')
+        org_label.pack(side='bottom', padx=10)
+
+
+        time_label = tk.Label(bottom_frame, font=('orbitron', 12))
+        time_label.pack(side='right')
+
+        self.tick(time_label)
+
+    def tick(self, label):
+        current_time = time.strftime('%I:%M %p').lstrip('0').replace(' 0', ' ')
+        label.config(text=current_time)
+        label.after(200, lambda: self.tick(label))
+
+
+class InstallPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg='#B3B6B7')
+        self.controller = controller
+
+        heading_label = tk.Label(self, text='Install Page', font=('orbitron', 45, 'bold'), foreground='#2C3E50', background='#B3B6B7')
+        heading_label.pack(pady=25)
+
+
+        selection_label = tk.Label(self, text=' ** Please make a selection', font=('orbitron', 13), fg='white', bg='#2C3E50', anchor='w')
+        selection_label.pack(fill='x')
+
+
+        def install_xCAT():
+        # Checking you have root privileges or not
+            if os.geteuid() != 0:
+                messagebox.showerror("Error", "You need root privileges to run this script.\nPlease try again using 'sudo'. Exiting.")
+            else:
+                result = messagebox.askquestion("Install xCAT", "Are you sure you want to install xCAT?")
+
+                if result == "yes":
+                    os.system("systemctl stop firewalld && \
+                    systemctl disable firewalld && \
+                    setenforce 0 && \
+                    sed -i 's/SELINUX=permissive/SELINUX=disabled/' /etc/selinux/config")
+                    isFile = os.path.isfile("/etc/profile.d/xcat.sh")
+                    if(isFile==True):
+                        messagebox.showinfo("Info", "xCAT is already installed")
+                    else:
+                        os.system("wget -P /etc/yum.repos.d https://xcat.org/files/xcat/repos/yum/latest/xcat-core/xcat-core.repo && \
+                        wget -P /etc/yum.repos.d https://xcat.org/files/xcat/repos/yum/xcat-dep/rh8/x86_64/xcat-dep.repo && \
+                        dnf install xCAT -y && \
+                        . /etc/profile.d/xcat.sh && \
+                        lsxcatd -a")
+                        messagebox.showinfo("Success", "xCAT environment is set successfully")
+                else:
+                    messagebox.showinfo("Operation Aborted", "Installation aborted.")       
+
+        def set_hostname():
+            new_hostname = hostname_entry.get()
+            # Using the 'hostnamectl' command to set the new hostname
+            try:
+                subprocess.run(["sudo", "hostnamectl", "set-hostname", new_hostname], check=True)
+                print(f"Hostname has been set to {new_hostname}")
+            except subprocess.CalledProcessError:
+                print("Failed to set hostname. Make sure you have the necessary privileges.")
+
+        def set_dhcp_interface():
+            dhcpinterfaces = dhcp_entry.get()
+            try:
+                subprocess.run(["chdef", "-t", "site", f"dhcpinterfaces={dhcpinterfaces}"], check=True)
+            except subprocess.CalledProcessError:
+                pass  #error handling code here
+
+        def set_master_ip():
+            ip_regex = r'^(\d{1,3}\.){3}\d{1,3}$'
+            master = master_ip_entry.get()
+            # Check if the entered IP address matches the regex pattern
+            if re.match(ip_regex, master):
+                try:
+                    subprocess.run(["chdef", "-t", "site", f"master={master}"], check=True)
+                except subprocess.CalledProcessError:
+                    pass  #error handling code here
+            else:
+                print("Invalid IP address. Please enter a valid IP address.")
+
+        def submit_changes():
+            set_hostname()
+            set_dhcp_interface()
+            set_master_ip()
+
+
+        install_button = tk.Button(self, text="Install xCAT", font=('orbitron', 12, 'bold'), width=30, height=4, padx=16, pady=6, borderwidth=3, command=install_xCAT)
+        install_button.pack(pady=20)
+
+        hostname_label = tk.Label(self, text="Enter Hostname:", font=('orbitron', 12), bg='#B3B6B7')
+        hostname_label.pack()
+        hostname_entry = tk.Entry(self)
+        hostname_entry.pack(padx=24, pady=6)
+
+        dhcp_label = tk.Label(self, text="Enter DHCP Interface:", font=('orbitron', 12), bg='#B3B6B7')
+        dhcp_label.pack()
+        dhcp_entry = tk.Entry(self)
+        dhcp_entry.pack(padx=24, pady=6)
+
+        master_ip_label = tk.Label(self, text="Enter Master IP:", font=('orbitron', 12), bg='#B3B6B7')
+        master_ip_label.pack()
+        master_ip_entry = tk.Entry(self)
+        master_ip_entry.pack(padx=24, pady=6)
+
+        submit_button = tk.Button(self, text="Submit Changes", font=('orbitron', 12, 'bold'), padx=12, pady=6, borderwidth=3, command=submit_changes, width=30, height=4)
+        submit_button.pack(pady=20)
+
+        back_button = tk.Button(self, text='Back to Main Menu', font=('orbitron', 12, 'bold'), command=lambda: controller.show_frame('MainPage'), relief='raised', borderwidth=3, width=30, height=4)
+        back_button.pack(pady=20)
+
+        bottom_frame = tk.Frame(self, relief='raised', borderwidth=3)
+        bottom_frame.pack(fill='x', side='bottom')
+
+        org_label = tk.Label(self, text='@ Centre for Development of Advanced Computing', font=('orbitron', 10), bg='#B3B6B7', fg='black')
+        org_label.pack(side='bottom', padx=10)
+
+        time_label = tk.Label(bottom_frame, font=('orbitron', 12))
+        time_label.pack(side='right')
+
+        self.tick(time_label)
+
+    def tick(self, label):
+        current_time = time.strftime('%I:%M %p').lstrip('0').replace(' 0', ' ')
+        label.config(text=current_time)
+        label.after(200, lambda: self.tick(label))
+
+class ImagePage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg='#B3B6B7')
+        self.controller = controller
+
+        heading_label = tk.Label(self, text='Image Page', font=('orbitron', 45, 'bold'), foreground='#2C3E50', background='#B3B6B7')
+        heading_label.pack(pady=25)
+
+
+        selection_label = tk.Label(self, text=' ** Please make a selection', font=('orbitron', 13), fg='white', bg='#2C3E50', anchor='w')
+        selection_label.pack(fill='x')
+
+
+        def browse_iso():
+            try:
+                iso_path = filedialog.askopenfilename(
+                    title="Select an ISO file",
+                    filetypes=[("ISO files", "*.iso")]
+                )
+
+                if not iso_path:
+                    print("No file selected.")
+                else:
+                    print("Selected ISO file:", iso_path)
+
+                if os.path.exists(iso_path) and iso_path.endswith(".iso"):
+                    self.status_label.config(text=f"Selected ISO file: {iso_path}")
+                    self.status_label.update()
+                    self.copy_image(iso_path)
+                else:
+                    self.status_label.config(text="Invalid ISO file.")
+            except Exception as e:
+                print("An error occurred:", str(e))
+
+        def copy_image(self, iso_path):
+            if os.path.exists(iso_path) and iso_path.endswith(".iso"):
+                self.status_label.config(text=f"Selected ISO file: {iso_path}")
+                self.status_label.update()
+
+                # Create a progress bar
+                self.progress_bar = ttk.Progressbar(self.root, length=300, mode="determinate")
+                self.progress_bar.pack(padx=34, pady=10)
+
+                # Create a thread to run the copycds command
+                copycds_thread = threading.Thread(target=self.run_copycds, args=(iso_path,))
+                copycds_thread.start()
+            else:
+                self.status_label.config(text="Invalid ISO file.")
+
+        def run_copycds(self, iso_path):
+            try:
+                # Determine the total size of the ISO file
+                total_size = os.path.getsize(iso_path)
+
+                # Run the copycds command
+                process = subprocess.Popen(f"copycds {iso_path}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                while process.poll() is None:
+                    # Calculate the progress percentage
+                    current_size = os.path.getsize(iso_path)
+                    progress = (current_size / total_size) * 100
+
+                    # Update the progress bar
+                    self.progress_bar["value"] = progress
+                    self.root.update()
+
+                self.status_label.config(text="Copying completed.")
+            except subprocess.CalledProcessError as e:
+                self.status_label.config(text=f"Error copying CDs: {e}")
+
+            # Stop the progress bar
+            self.progress_bar.stop()
+            self.progress_bar.destroy()
+
+        def on_query_button_clicked():
+            self.query_available_images()
+
+        def query_available_images():
+            self.status_label.config(text="Querying available OS images...")
+
+            try:
+                output = subprocess.check_output("lsdef -t osimage | cut -d' ' -f1", shell=True).decode()
+                self.status_label.config(text=output)
+            except subprocess.CalledProcessError as e:
+                self.status_label.config(text=f"Error querying OS images: {e}")
+    
+
+        def pack_image():
+            img_choice = simpledialog.askstring("Image Choice", "Enter your Choice of image (install or netboot):")
+        
+            if img_choice:
+                if img_choice == "install":
+                    os.system("mkdir -p /install/custom/install")
+                    command = [
+                        'chdef',
+                        '-t', 'osimage',
+                        'alma8.8-x86_64-install-compute',
+                        'synclists="/install/custom/install/compute.synclist"'
+                    ]
+                    # Run the command
+                    subprocess.run(command, check=True)
+
+                    file_path = "/install/custom/install/compute.synclist"
+
+                    # Define the lines to write
+                    lines = [
+                        "/etc/passwd -> /etc/passwd",
+                        "/etc/shadow -> /etc/shadow",
+                        "/etc/group -> /etc/group",
+                        "/etc/hosts -> /etc/hosts"
+                    ]
+
+                    # Open the file in append mode and write the lines
+                    with open(file_path, "a") as file:
+                        for line in lines:
+                            file.write(line + "\n")
+                    os.system("packimage alma8.8-x86_64-install-compute")
+
+                elif img_choice == "netboot":
+                    os.system("mkdir -p /install/custom/netboot")
+                    command = [
+                        'chdef',
+                        '-t', 'osimage',
+                        'alma8.8-x86_64-netboot-compute',
+                        'synclists="/install/custom/netboot/compute.synclist"'
+                    ]
+                    # Run the command
+                    subprocess.run(command, check=True)
+
+                    file_path = "/install/custom/netboot/compute.synclist"
+
+                    # Define the lines to write
+                    lines = [
+                        "/etc/passwd -> /etc/passwd",
+                        "/etc/shadow -> /etc/shadow",
+                        "/etc/group -> /etc/group",
+                        "/etc/hosts -> /etc/hosts"
+                    ]
+
+                    # Open the file in append mode and write the lines
+                    with open(file_path, "a") as file:
+                        for line in lines:
+                            file.write(line + "\n")
+                    os.system("packimage alma8.8-x86_64-netboot-compute")
+
+
+        browse_iso_button = tk.Button(self, text="Browse ISO", font=('orbitron', 12, 'bold'), command=browse_iso, borderwidth=3, width=30, height=4)
+        browse_iso_button.pack(pady=20)
+
+        query_button = tk.Button(self, text="Query OS Images", font=('orbitron', 12, 'bold'), command=on_query_button_clicked, borderwidth=3, width=30, height=4)
+        query_button.pack(pady=20)
+
+        pack_image_button = tk.Button(self, text="Pack Image", font=('orbitron', 12, 'bold'), command=pack_image, borderwidth=3, width=30, height=4)
+        pack_image_button.pack(pady=20)
+
+        back_button = tk.Button(self, text='Back to Main Menu',font=('orbitron', 12, 'bold'), command=lambda: controller.show_frame('MainPage'), relief='raised', borderwidth=3, width=30, height=4)
+        back_button.pack(pady=20)
+
+        bottom_frame = tk.Frame(self, relief='raised', borderwidth=3)
+        bottom_frame.pack(fill='x', side='bottom')
+
+        org_label = tk.Label(self, text='@ Centre for Development of Advanced Computing', font=('orbitron', 10), bg='#B3B6B7', fg='black')
+        org_label.pack(side='bottom', padx=10)
+
+        time_label = tk.Label(bottom_frame, font=('orbitron', 12))
+        time_label.pack(side='right')
+
+        self.tick(time_label)
+
+    def tick(self, label):
+        current_time = time.strftime('%I:%M %p').lstrip('0').replace(' 0', ' ')
+        label.config(text=current_time)
+        label.after(200, lambda: self.tick(label))
+
+class NodePage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg='#B3B6B7')
+        self.controller = controller
+
+        heading_label = tk.Label(self, text='Node Definition Page', font=('orbitron', 45, 'bold'), foreground='#2C3E50', background='#B3B6B7')
+        heading_label.pack(pady=25)
+
+
+        selection_label = tk.Label(self, text=' ** Please make a selection', font=('orbitron', 13), fg='white', bg='#2C3E50', anchor='w')
+        selection_label.pack(fill='x')
+
+
+        def create_group():
+            group_name = simpledialog.askstring("Create Group", "Enter Group Name:")
+            if group_name:
+                subprocess.run(["mkdef", "-t", "group", "-o", group_name])
+
+        def add_node():
+            n_name = simpledialog.askstring("Add Node", "Enter Node Name:")
+            n_group_name = simpledialog.askstring("Add Node", "Enter Group Name:")
+            n_ip = simpledialog.askstring("Add Node", "Enter Node IP:")
+            n_mac = simpledialog.askstring("Add Node", "Enter Node MAC Address:")
+            n_ib_ip = simpledialog.askstring("Add Node", "Enter Node Infiniband IP:")
+            n_bmc_ip = simpledialog.askstring("Add Node", "Enter Node BMC IP:")
+            image = simpledialog.askstring("Add Node", "Enter Image Name:")
+
+            if not all([n_name, n_group_name, n_ip, n_mac, n_ib_ip, n_bmc_ip, image]):
+                messagebox.showinfo("Error", "One of the fields is empty. Please try again.")
+            else:
+                n_osimage = subprocess.check_output(["lsdef", "-t", "osimage", image]).decode().split("osvers=")[1].split("\n")[0]
+                subprocess.run([
+                    "mkdef", "-t", "node", "-o", n_name, "groups=" + n_group_name, "ip=" + n_ip, "mac=" + n_mac,
+                    "nicips.ib0=" + n_ib_ip, "nicnetworks.ib0=ib0", "nictypes.ib0=Infiniband", "bmc=" + n_bmc_ip,
+                    "mgt=ipmi", "chain=runcmd=bmcsetup", "os=" + n_osimage, "postbootscripts=confignetwork -s", "profile=compute"
+                ])
+                self.make_hosts()
+                self.make_dhcp()
+                self.make_dns()
+                self.node_set(n_name, image)
+
+        def make_hosts():
+            subprocess.run(["makehosts"])
+
+        def make_dhcp():
+            subprocess.run(["makedhcp", "-n"])
+
+        def make_dns():
+            subprocess.run(["makedns", "-n"])
+
+        def node_set(self, node_name, os_image):
+            subprocess.run(["nodeset", node_name, "osimage=" + os_image])
+
+        def process_csv():
+            # Read the CSV file
+            csv_file_path = filedialog.askopenfilename(title="Select CSV File")
+            if not csv_file_path:
+                return
+
+            duplicate_macs = []
+            duplicate_hostnames = []
+            duplicate_ips = []
+
+            # Define the database connection parameters
+            db_params = {
+                'dbname': 'your_database_name',
+                'user': 'your_database_user',
+                'password': 'your_database_password',
+                'host': 'your_database_host',
+            }
+
+            # Establish a database connection
+            connection = connect(**db_params)
+            cursor = connection.cursor()
+
+            with open(csv_file_path, 'r') as csvfile:
+                csv_reader = csv.reader(csvfile)
+                next(csv_reader)  # Skip the header row
+                for row in csv_reader:
+                    hostname, ip, mac = row[0], row[1], row[2]
+
+                    # Check for duplicate MAC address
+                    cursor.execute('SELECT COUNT(mac) FROM mac WHERE LOWER(mac) = LOWER(%s)', [mac])
+                    result = cursor.fetchone()[0]
+
+                    # Check for duplicate IP address
+                    cursor.execute('SELECT COUNT(ip) FROM hosts WHERE LOWER(ip) = LOWER(%s)', [ip])
+                    result1 = cursor.fetchone()[0]
+
+                    # Check for duplicate hostname
+                    cursor.execute('SELECT COUNT(node) FROM nodelist WHERE LOWER(node) = LOWER(%s)', [hostname])
+                    result2 = cursor.fetchone()[0]
+
+                    if int(result) >= 1:
+                        duplicate_macs.append(mac)
+                    elif int(result1) >= 1:
+                        duplicate_ips.append(ip)
+                    elif int(result2) >= 1:
+                        duplicate_hostnames.append(hostname)
+                    else:
+                        # Run the xCAT command
+                        command = f"mkdef -t node {hostname} groups={groups} ip={ip} mac={mac} netboot=xnba arch=x86_64 mgt=ipmi serialport=0 serialspeed=115200"
+                        os.system(command)
+
+            # Close the database connection
+            cursor.close()
+            connection.close()
+
+            # Delete the CSV file
+            os.remove(csv_file_path)
+
+
+            mac_label = Label(result_window, text=f'Duplicate MAC Addresses: {duplicate_macs}')
+            mac_label.pack()
+
+            ip_label = Label(result_window, text=f'Duplicate IP Addresses: {duplicate_ips}')
+            ip_label.pack()
+
+            hostname_label = Label(result_window, text=f'Duplicate Hostnames: {duplicate_hostnames}')
+            hostname_label.pack()
+
+
+        group_button = tk.Button(self, text="Create Group",font=('orbitron', 12, 'bold'), command=create_group, borderwidth=3, width=30, height=4)
+        group_button.pack(pady=10)
+
+        node_button = tk.Button(self, text="Add Node", command=add_node, font=('orbitron', 12, 'bold'), borderwidth=3, width=30, height=4)
+        node_button.pack(pady=10)
+
+
+        process_button = Button(self, text="Process CSV", font=('orbitron', 12, 'bold'), command=process_csv, borderwidth=3, width=30, height=4)
+        process_button.pack(pady=20)
+
+        back_button = tk.Button(self, text='Back to Main Menu', font=('orbitron', 12, 'bold'), command=lambda: controller.show_frame('MainPage'), relief='raised', borderwidth=3, width=30, height=4)
+        back_button.pack(pady=20)
+
+        bottom_frame = tk.Frame(self, relief='raised', borderwidth=3)
+        bottom_frame.pack(fill='x', side='bottom')
+
+        org_label = tk.Label(self, text='@ Centre for Development of Advanced Computing', font=('orbitron', 10), bg='#B3B6B7', fg='black')
+        org_label.pack(side='bottom', padx=10)
+
+        time_label = tk.Label(bottom_frame, font=('orbitron', 12))
+        time_label.pack(side='right')
+
+        self.tick(time_label)
+
+    def tick(self, label):
+        current_time = time.strftime('%I:%M %p').lstrip('0').replace(' 0', ' ')
+        label.config(text=current_time)
+        label.after(200, lambda: self.tick(label))
+
+class ShowPage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent, bg='#B3B6B7')
+        self.controller = controller
+
+        heading_label = tk.Label(self, text='Node List', font=('orbitron', 45, 'bold'), foreground='#2C3E50', background='#B3B6B7')
+        heading_label.pack(pady=25)
+
+        selection_label = tk.Label(self, text=' ** Please make a selection', font=('orbitron', 13), fg='white', bg='#2C3E50', anchor='w')
+        selection_label.pack(fill='x')
+
+
+        def list_defined_nodes():
+            try:
+                # Run the 'lsdef' command to list defined nodes
+                result = subprocess.run(['lsdef', '-t', 'node'], capture_output=True, text=True, check=True)
+                
+                # Check if the command was successful
+                if result.returncode == 0:
+                    output = result.stdout
+                    return output
+                else:
+                    return f"Error: {result.stderr}"
+            except subprocess.CalledProcessError as e:
+                return f"Error: {e}"
+
+        def show_defined_nodes():
+            defined_nodes = list_defined_nodes()
+            output_text.config(state=tk.NORMAL)  # Enable text widget for editing
+            output_text.delete('1.0', tk.END)    # Clear previous content
+            output_text.insert(tk.END, defined_nodes)  # Insert the defined nodes
+            output_text.config(state=tk.DISABLED)  # Disable text widget for editing
+
+
+        # Create a button to trigger listing defined nodes
+        list_nodes_button = tk.Button(self, text="List Defined Nodes", font=('orbitron', 12, 'bold'), width=30, height=3, borderwidth=3, command=show_defined_nodes)
+        list_nodes_button.pack(pady=15)
+
+        # Create a text widget to display the output
+        output_text = tk.Text(self, height=20, width=50)
+        output_text.pack()
+
+        # Disable text widget for editing (read-only)
+        output_text.config(state=tk.DISABLED)
+
+        back_button = tk.Button(self, text='Back to Main Menu', font=('orbitron', 12, 'bold'), command=lambda: controller.show_frame('MainPage'), relief='raised', borderwidth=3, width=30, height=4)
+        back_button.pack(pady=20)
+
+        bottom_frame = tk.Frame(self, relief='raised', borderwidth=3)
+        bottom_frame.pack(fill='x', side='bottom')
+
+        org_label = tk.Label(self, text='@ Centre for Development of Advanced Computing', font=('orbitron', 10), bg='#B3B6B7', fg='black')
+        org_label.pack(side='bottom', padx=10)
+
+        time_label = tk.Label(bottom_frame, font=('orbitron', 12))
+        time_label.pack(side='right')
+
+        self.tick(time_label)
+
+    def tick(self, label):
+        current_time = time.strftime('%I:%M %p').lstrip('0').replace(' 0', ' ')
+        label.config(text=current_time)
+        label.after(200, lambda: self.tick(label))
+
+if __name__ == "__main__":
+    app = XcatInstaller()
+    app.mainloop()
+

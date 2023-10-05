@@ -1,0 +1,45 @@
+#!/usr/bin/python3
+
+import subprocess
+import tkinter as tk
+
+def list_defined_nodes():
+    try:
+        # Run the 'lsdef' command to list defined nodes
+        result = subprocess.run(['lsdef', '-t', 'node'], capture_output=True, text=True, check=True)
+        
+        # Check if the command was successful
+        if result.returncode == 0:
+            output = result.stdout
+            return output
+        else:
+            return f"Error: {result.stderr}"
+    except subprocess.CalledProcessError as e:
+        return f"Error: {e}"
+
+def show_defined_nodes():
+    defined_nodes = list_defined_nodes()
+    output_text.config(state=tk.NORMAL)  # Enable text widget for editing
+    output_text.delete('1.0', tk.END)    # Clear previous content
+    output_text.insert(tk.END, defined_nodes)  # Insert the defined nodes
+    output_text.config(state=tk.DISABLED)  # Disable text widget for editing
+
+# Create the main application window
+app = tk.Tk()
+app.title("List Defined Nodes")
+app.minsize(700, 400)
+
+# Create a button to trigger listing defined nodes
+list_nodes_button = tk.Button(app, text="List Defined Nodes", command=show_defined_nodes)
+list_nodes_button.pack(pady=10)
+
+# Create a text widget to display the output
+output_text = tk.Text(app, height=20, width=50)
+output_text.pack()
+
+# Disable text widget for editing (read-only)
+output_text.config(state=tk.DISABLED)
+
+if __name__ == "__main__":
+    app.mainloop()
+
